@@ -60,7 +60,7 @@ namespace MyToolkit.Paging
             Loaded += delegate { Window.Current.VisibilityChanged += OnVisibilityChanged; };
             Unloaded += delegate { Window.Current.VisibilityChanged -= OnVisibilityChanged; };
 
-            GoBackCommand = new RelayCommand(() => GoBackAsync(), () => CanGoBack);
+            GoBackCommand = new RelayCommand(() => GoBack(), () => CanGoBack);
 
             DefaultStyleKey = typeof(MtFrame);
             
@@ -105,6 +105,7 @@ namespace MyToolkit.Paging
 
         /// <summary>Occurs when navigating to a page. </summary>
         public event NavigatedEventHandler Navigated;
+        public event EventHandler<MtNavigatingCancelEventArgs> Navigating;
 
         /// <summary>Gets a command to navigate to the previous page. </summary>
         public ICommand GoBackCommand { get; private set; }
@@ -154,7 +155,7 @@ namespace MyToolkit.Paging
         /// <returns>Returns true if navigating forward, false if cancelled</returns>
         public async Task<bool> GoForwardAsync()
         {
-            if (await CallOnNavigatingFromAsync(CurrentPage, NavigationMode.Forward))
+            if (await CallOnNavigatingFromAsync(CurrentPage, null, NavigationMode.Forward))
                 return false;
 
             GoForwardOrBack(NavigationMode.Forward);
@@ -242,11 +243,16 @@ namespace MyToolkit.Paging
         /// <returns>Returns true if navigating back, false if cancelled or CanGoBack is false. </returns>
         public async Task<bool> GoBackAsync()
         {
-            if (await CallOnNavigatingFromAsync(CurrentPage, NavigationMode.Back))
+            if (await CallOnNavigatingFromAsync(CurrentPage, this.PreviousPage, NavigationMode.Back))
                 return false;
 
             GoForwardOrBack(NavigationMode.Back);
             return true;
+        }
+
+        public void GoBack()
+        {
+            var ignore = this.GoBackAsync();
         }
 
         private void GoForwardOrBack(NavigationMode mode)
@@ -298,10 +304,20 @@ namespace MyToolkit.Paging
         /// <returns>Returns true if the navigation process has not been cancelled. </returns>
         public async Task<bool> NavigateAsync(Type pageType, object parameter)
         {
-            if (CurrentPage != null && await CallOnNavigatingFromAsync(CurrentPage, NavigationMode.New))
-                return false;
+            if (CurrentPage != null)
+            {
+                MtPageDescription targetPage = new MtPageDescription(pageType, parameter);
+                if(await CallOnNavigatingFromAsync(CurrentPage, targetPage, NavigationMode.New))
+                   return false;
+            }
 
             NavigateInternal(pageType, parameter);
+            return true;
+        }
+
+        public bool Navigate(Type sourcePageType, object parameter)
+        {
+            var ignored = NavigateAsync(sourcePageType, parameter);
             return true;
         }
 
@@ -368,16 +384,33 @@ namespace MyToolkit.Paging
             page.InternalOnNavigatedFrom(args);
         }
 
-        private async Task<bool> CallOnNavigatingFromAsync(MtPageDescription description, NavigationMode mode)
+        private async Task<bool> CallOnNavigatingFromAsync(MtPageDescription current, MtPageDescription targetPage, NavigationMode mode)
         {
-            var page = description.GetPage(this);
+            var page = current.GetPage(this);
             var args = new MtNavigatingCancelEventArgs();
             args.Content = page;
-            args.SourcePageType = description.Type;
+            args.SourcePageType = current.Type;
             args.NavigationMode = mode;
+            args.Parameter = current.Parameter;
 
             IsNavigating = true;
             await page.InternalOnNavigatingFromAsync(args);
+
+            if (!args.Cancel && targetPage != null)
+            {
+                var args2 = new MtNavigatingCancelEventArgs();
+                args2.SourcePageType = targetPage.Type;
+                args2.NavigationMode = mode;
+                args2.Parameter = targetPage.Parameter;
+
+                var copy = Navigating;
+                if (copy != null)
+                {
+                    copy(this, args2);
+                    args.Cancel = args2.Cancel;
+                }
+            }
+
             IsNavigating = false;
 
             return args.Cancel;
@@ -477,6 +510,26 @@ namespace MyToolkit.Paging
         public int BackStackDepth
         {
             get { return _currentIndex + 1; }
+        }
+
+        public void ClearBackStack()
+        {
+            var pages = _pages.ToArray();
+            for (var i = 0; i < _currentIndex; i++)
+            {
+                var page = pages[i];
+                _pages.Remove(page);
+            }
+            _currentIndex = 0;
+        }
+
+        public void RemovePage(MtPageDescription page)
+        {
+            if(_pages.Contains(page) && page != this.CurrentPage)
+            {
+                _pages.Remove(page);
+                _currentIndex--;
+            }
         }
     }
 }

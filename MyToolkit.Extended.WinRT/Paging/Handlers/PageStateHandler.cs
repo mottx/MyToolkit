@@ -62,6 +62,9 @@ namespace MyToolkit.Paging.Handlers
 
         public void OnNavigatedFrom(MtNavigationEventArgs e)
         {
+            if (e.NavigationMode == NavigationMode.Back)
+                return;
+
             var frameState = MtSuspensionManager.SessionStateForFrame(_page.Frame);
             var pageState = new Dictionary<String, Object>();
             var args = new MtSaveStateEventArgs(pageState);

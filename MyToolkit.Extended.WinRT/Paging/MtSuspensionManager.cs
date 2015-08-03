@@ -18,6 +18,7 @@ namespace MyToolkit.Paging
     /// </summary>
     public sealed class MtSuspensionManager
     {
+        public static event EventHandler<Dictionary<string, object>> SessionStateRestored; 
         private const string SessionStateFilename = "_sessionState.xml";
 
         private static Dictionary<string, object> _sessionState = new Dictionary<string, object>();
@@ -99,6 +100,8 @@ namespace MyToolkit.Paging
                 // Deserialize the Session State
                 DataContractSerializer serializer = new DataContractSerializer(typeof(Dictionary<string, object>), _knownTypes);
                 _sessionState = (Dictionary<string, object>)serializer.ReadObject(inStream.AsStreamForRead());
+                if (SessionStateRestored != null)
+                    SessionStateRestored(null, _sessionState);
             }
 
             // Restore any registered frames to their saved state
