@@ -27,7 +27,7 @@ namespace MyToolkit.Paging
         //private AppBar _topAppBar;
         //private AppBar _bottomAppBar;
 
-        internal PageStateHandler PageStateHandler { get; private set; }
+        protected internal PageStateHandler PageStateHandler { get; private set; }
         internal NavigationKeyHandler NavigationKeyHandler { get; private set; }
 
         /// <summary>
@@ -397,7 +397,7 @@ namespace MyToolkit.Paging
         // internal methods ensure that base implementations of InternalOn* is always called
         // even if user does not call base.InternalOn* in the overridden On* method. 
 
-        internal async virtual void InternalOnNavigatedTo(MtNavigationEventArgs e)
+        protected internal async virtual void InternalOnNavigatedTo(MtNavigationEventArgs e)
         {
             OnNavigatedTo(e);
             PageStateHandler.OnNavigatedTo(e);
@@ -458,7 +458,7 @@ namespace MyToolkit.Paging
             }
         }
 
-        internal void InternalOnNavigatedFrom(MtNavigationEventArgs e)
+        protected internal void InternalOnNavigatedFrom(MtNavigationEventArgs e)
         {
             OnNavigatedFrom(e);
             PageStateHandler.OnNavigatedFrom(e);
