@@ -4,7 +4,7 @@ using Windows.UI.Xaml.Navigation;
 
 namespace MyToolkit.Paging.Handlers
 {
-    internal class PageStateHandler
+    public class PageStateHandler
     {
         private readonly MtPage _page;
 

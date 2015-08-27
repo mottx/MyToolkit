@@ -23,11 +23,11 @@ using MyToolkit.Paging.Handlers;
 namespace MyToolkit.Paging
 {
     /// <summary>The customized page base class.</summary>
-    public class MtPage : ContentControl
+    public class MtPage : UserControl
     {
         private bool _isLoaded = false;
 
-        internal PageStateHandler PageStateHandler { get; private set; }
+        protected internal PageStateHandler PageStateHandler { get; private set; }
 
         internal NavigationKeyHandler NavigationKeyHandler { get; private set; }
 
